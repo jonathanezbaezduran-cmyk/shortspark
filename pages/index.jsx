@@ -73,16 +73,10 @@ function Bar({ label, value, color }) {
   );
 }
 
+const GUMROAD_URL = "https://zequielbaez.gumroad.com/l/eajvgh";
+
 function Paywall({ onUpgrade }) {
-  const [loading, setLoading] = useState(false);
-  const go = async () => {
-    setLoading(true);
-    try {
-      const r = await fetch("/api/create-checkout", { method:"POST", headers:{"Content-Type":"application/json"} });
-      const d = await r.json();
-      if (d.url) window.location.href = d.url;
-    } catch { setLoading(false); }
-  };
+  const go = () => { window.location.href = GUMROAD_URL; };
   return (
     <div style={{background:"#0f172a",border:"1px solid rgba(34,211,238,0.3)",borderRadius:"16px",padding:"2.5rem 2rem",textAlign:"center",marginTop:"1rem"}}>
       <div style={{fontSize:"2rem",marginBottom:"1rem"}}>⚡</div>
@@ -91,15 +85,14 @@ function Paywall({ onUpgrade }) {
         You&apos;ve used your {FREE_LIMIT} free daily analyses.<br/>
         Upgrade to <strong style={{color:"#e2e8f0"}}>ShortSpark Pro</strong> for unlimited analyses, priority speed, and new features every week.
       </p>
-      <button onClick={go} disabled={loading} style={{
+      <button onClick={go} style={{
         background:"#22d3ee",color:"#020817",border:"none",borderRadius:"10px",
         padding:"0.75rem 2rem",fontFamily:"ui-monospace,monospace",fontSize:"0.9rem",
-        fontWeight:"700",cursor:"pointer",letterSpacing:"0.05em",transition:"opacity 0.2s",
-        opacity: loading ? 0.7 : 1
+        fontWeight:"700",cursor:"pointer",letterSpacing:"0.05em",transition:"opacity 0.2s"
       }}>
-        {loading ? "Redirecting…" : "Upgrade to Pro — $9/month"}
+        Upgrade to Pro — $9/month
       </button>
-      <p style={{color:"#334155",fontSize:"0.7rem",marginTop:"0.75rem"}}>Cancel anytime · Secure payment via Stripe</p>
+      <p style={{color:"#334155",fontSize:"0.7rem",marginTop:"0.75rem"}}>Cancel anytime · Secure payment via Gumroad</p>
     </div>
   );
 }
@@ -381,10 +374,8 @@ export default function ShortSpark() {
                 <p style={{color:"#22d3ee",fontSize:"0.82rem",marginBottom:"0.75rem"}}>
                   {usesLeft===0?"You've used all free analyses for today.":"Last free analysis today."}
                 </p>
-                <button className="ss-btn" onClick={async()=>{
-                  const r=await fetch("/api/create-checkout",{method:"POST",headers:{"Content-Type":"application/json"}});
-                  const d=await r.json(); if(d.url)window.location.href=d.url;
-                }} style={{background:"#22d3ee",color:"#020817",border:"none",borderRadius:"8px",
+                <button className="ss-btn" onClick={()=>{ window.location.href=GUMROAD_URL; }}
+                style={{background:"#22d3ee",color:"#020817",border:"none",borderRadius:"8px",
                   padding:"0.55rem 1.25rem",fontFamily:"inherit",fontSize:"0.8rem",
                   fontWeight:"700",cursor:"pointer",letterSpacing:"0.05em"}}>
                   Unlock Pro — $9/month

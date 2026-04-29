@@ -14,7 +14,7 @@ const TESTIMONIALS = [
 
 function getUses() {
   if (typeof window === "undefined") return 0;
-  try { const d = JSON.parse(localStorage.getItem(STORAGE_KEY)||"{}"); const today=new Date().toDateString(); return d.date===today?(d.count||0):0; } catch { return 0; }
+  try { const d=JSON.parse(localStorage.getItem(STORAGE_KEY)||"{}"); const today=new Date().toDateString(); return d.date===today?(d.count||0):0; } catch { return 0; }
 }
 function incrementUses() {
   const today=new Date().toDateString(); const count=getUses()+1;
@@ -25,7 +25,7 @@ function getHistory() {
   try { return JSON.parse(localStorage.getItem(HISTORY_KEY)||"[]"); } catch { return []; }
 }
 function saveHistory(item) {
-  localStorage.setItem(HISTORY_KEY,JSON.stringify([item,...getHistory()].slice(0,5)));
+  localStorage.setItem(HISTORY_KEY,JSON.stringify([item,...getHistory()].slice(0,20)));
 }
 function scoreColor(s) { return s>=75?"#22d3ee":s>=50?"#f59e0b":"#f87171"; }
 function getStatusMeta(status) {
@@ -80,14 +80,8 @@ function UserCounter() {
   useEffect(()=>{const i=setInterval(()=>setCount(c=>c+Math.floor(Math.random()*3)),4000);return()=>clearInterval(i);},[]);
   return (
     <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:"8px",marginBottom:"6px"}}>
-      <div style={{display:"flex"}}>
-        {["#f87171","#22d3ee","#a78bfa","#f59e0b"].map((c,i)=>(
-          <div key={i} style={{width:"18px",height:"18px",borderRadius:"50%",background:c,border:"2px solid #020817",marginLeft:i>0?"-5px":"0"}}/>
-        ))}
-      </div>
-      <span style={{color:"#64748b",fontSize:"0.72rem"}}>
-        <span style={{color:"#22d3ee",fontWeight:"700"}}>{count.toLocaleString()}</span> creators analyzed today
-      </span>
+      <div style={{display:"flex"}}>{["#f87171","#22d3ee","#a78bfa","#f59e0b"].map((c,i)=><div key={i} style={{width:"18px",height:"18px",borderRadius:"50%",background:c,border:"2px solid #020817",marginLeft:i>0?"-5px":"0"}}/>)}</div>
+      <span style={{color:"#64748b",fontSize:"0.72rem"}}><span style={{color:"#22d3ee",fontWeight:"700"}}>{count.toLocaleString()}</span> creators analyzed today</span>
     </div>
   );
 }
@@ -96,13 +90,167 @@ function ShareButton({result,topic}) {
   const [shared,setShared]=useState(false);
   const share=()=>{
     const text=`🚀 My YouTube Short scored ${result.viral_score}/100 on ShortSpark!\n\nTopic: "${topic}"\nStatus: ${result.trending_status} · Est. views: ${result.estimated_views}\n\nTest your hook free 👉 shortspark.vercel.app`;
-    if(navigator.share){navigator.share({text});}
-    else{navigator.clipboard?.writeText(text);setShared(true);setTimeout(()=>setShared(false),2000);}
+    if(navigator.share){navigator.share({text});}else{navigator.clipboard?.writeText(text);setShared(true);setTimeout(()=>setShared(false),2000);}
   };
+  return <button onClick={share} style={{background:"rgba(34,211,238,0.08)",border:"1px solid rgba(34,211,238,0.2)",borderRadius:"8px",padding:"0.45rem 0.9rem",color:"#22d3ee",fontFamily:"inherit",fontSize:"0.72rem",fontWeight:"700",cursor:"pointer",display:"flex",alignItems:"center",gap:"5px"}}>{shared?"✓ Copied!":"↗ Share score"}</button>;
+}
+
+function HistoryDashboard({history}) {
+  if(history.length===0) return null;
+  const avg=Math.round(history.reduce((s,h)=>s+h.score,0)/history.length);
+  const best=history.reduce((b,h)=>h.score>b.score?h:b,history[0]);
+  const nicheCounts=history.reduce((acc,h)=>{acc[h.niche]=(acc[h.niche]||0)+1;return acc;},{});
+  const topNiche=Object.entries(nicheCounts).sort((a,b)=>b[1]-a[1])[0]?.[0]||"—";
+  const hotCount=history.filter(h=>h.status==="HOT"||h.status==="RISING").length;
+
   return (
-    <button onClick={share} style={{background:"rgba(34,211,238,0.08)",border:"1px solid rgba(34,211,238,0.2)",borderRadius:"8px",padding:"0.45rem 0.9rem",color:"#22d3ee",fontFamily:"inherit",fontSize:"0.72rem",fontWeight:"700",cursor:"pointer",display:"flex",alignItems:"center",gap:"5px"}}>
-      {shared?"✓ Copied!":"↗ Share score"}
-    </button>
+    <div style={{background:"#0a0f1e",border:"1px solid #1e293b",borderRadius:"14px",padding:"1.25rem 1.5rem",marginBottom:"0.85rem"}}>
+      <span style={{fontSize:"0.68rem",color:"#475569",letterSpacing:"0.12em",marginBottom:"1rem",display:"block"}}>📊 YOUR PERFORMANCE DASHBOARD</span>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:"0.6rem",marginBottom:"1rem"}}>
+        {[
+          {label:"AVG SCORE",value:avg,color:scoreColor(avg),suffix:""},
+          {label:"BEST SCORE",value:best.score,color:"#22d3ee",suffix:""},
+          {label:"HOT/RISING",value:hotCount,color:"#f87171",suffix:`/${history.length}`},
+          {label:"TOP NICHE",value:topNiche.split(" ")[0],color:"#a78bfa",suffix:""},
+        ].map((stat,i)=>(
+          <div key={i} style={{background:"#020817",border:"1px solid #1e293b",borderRadius:"10px",padding:"0.75rem",textAlign:"center"}}>
+            <div style={{fontSize:"0.6rem",color:"#475569",letterSpacing:"0.1em",marginBottom:"4px"}}>{stat.label}</div>
+            <div style={{fontSize:"1.2rem",fontWeight:"700",color:stat.color,fontFamily:"ui-monospace,monospace"}}>{stat.value}<span style={{fontSize:"0.7rem",color:"#475569"}}>{stat.suffix}</span></div>
+          </div>
+        ))}
+      </div>
+
+      {/* Score trend mini chart */}
+      <div style={{marginBottom:"0.75rem"}}>
+        <div style={{fontSize:"0.65rem",color:"#475569",letterSpacing:"0.1em",marginBottom:"6px"}}>SCORE TREND (last {Math.min(history.length,10)})</div>
+        <div style={{display:"flex",alignItems:"flex-end",gap:"3px",height:"40px"}}>
+          {history.slice(0,10).reverse().map((h,i)=>(
+            <div key={i} style={{flex:1,background:scoreColor(h.score),borderRadius:"3px 3px 0 0",height:`${(h.score/100)*40}px`,minHeight:"4px",opacity:0.8,transition:"height 0.3s"}} title={`${h.score} — ${h.topic.slice(0,30)}`}/>
+          ))}
+        </div>
+      </div>
+
+      <div style={{fontSize:"0.65rem",color:"#334155",letterSpacing:"0.08em",marginBottom:"0.5rem"}}>RECENT ANALYSES — click to reuse</div>
+      <div style={{display:"flex",flexDirection:"column",gap:"0.4rem",maxHeight:"180px",overflowY:"auto"}}>
+        {history.map((h,i)=>(
+          <div key={i} style={{background:"#020817",border:"1px solid #1e293b",borderRadius:"7px",padding:"0.5rem 0.75rem",display:"flex",alignItems:"center",gap:"0.6rem",cursor:"pointer",transition:"background 0.15s"}}
+            onClick={()=>{ window._ss_reuse&&window._ss_reuse(h.topic,h.niche); }}>
+            <span style={{color:scoreColor(h.score),fontSize:"0.8rem",fontWeight:"700",fontFamily:"ui-monospace,monospace",flexShrink:0,minWidth:"24px"}}>{h.score}</span>
+            <span style={{color:"#e2e8f0",fontSize:"0.75rem",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{h.topic}</span>
+            <span style={{color:"#334155",fontSize:"0.65rem",flexShrink:0}}>{h.date}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function BatchAnalyzer({niche}) {
+  const [raw,setRaw]=useState("");
+  const [results,setResults]=useState(null);
+  const [loading,setLoading]=useState(false);
+  const [error,setError]=useState(null);
+  const [copied,setCopied]=useState(null);
+
+  const analyze=async()=>{
+    const hooks=raw.split("\n").map(h=>h.trim()).filter(Boolean);
+    if(hooks.length===0) return;
+    if(hooks.length>10){setError("Max 10 hooks at once");return;}
+    setLoading(true);setError(null);setResults(null);
+    try{
+      const res=await fetch("/api/batch",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({hooks,niche})});
+      const data=await res.json();
+      if(data.error) throw new Error(data.error);
+      setResults(data.results||[]);
+    }catch(e){setError(e.message||"Failed. Try again.");}
+    finally{setLoading(false);}
+  };
+
+  const copy=(text,i)=>{navigator.clipboard?.writeText(text).then(()=>{setCopied(i);setTimeout(()=>setCopied(null),1800);});};
+
+  return (
+    <div style={{background:"#0a0f1e",border:"1px solid rgba(34,211,238,0.15)",borderRadius:"14px",padding:"1.25rem 1.5rem",marginBottom:"0.85rem"}}>
+      <span style={{fontSize:"0.68rem",color:"#22d3ee",letterSpacing:"0.12em",marginBottom:"0.5rem",display:"block"}}>📦 BATCH ANALYZER — paste up to 10 hooks, one per line</span>
+      <p style={{color:"#334155",fontSize:"0.7rem",marginBottom:"0.85rem"}}>All ranked by viral score in seconds. Pro feature — unlimited batches.</p>
+      <textarea value={raw} onChange={e=>setRaw(e.target.value)} placeholder={"I tried this for 30 days and it changed everything\nTop 5 things nobody tells you about investing\nPOV: you accidentally sent that text to your boss\nThe hack that 10x'd my channel in 2 weeks\nHow to lose weight fast"}
+        rows={6} style={{width:"100%",background:"#020817",border:"1px solid #1e293b",borderRadius:"10px",padding:"0.75rem 1rem",color:"#f1f5f9",fontSize:"0.82rem",resize:"vertical",fontFamily:"inherit",lineHeight:"1.7",marginBottom:"0.75rem"}}/>
+      {error&&<p style={{color:"#f87171",fontSize:"0.78rem",marginBottom:"0.6rem"}}>⚠ {error}</p>}
+      <button onClick={analyze} disabled={!raw.trim()||loading}
+        style={{background:raw.trim()&&!loading?"linear-gradient(135deg,#22d3ee,#a78bfa)":"#1e293b",color:raw.trim()&&!loading?"#020817":"#475569",border:"none",borderRadius:"10px",padding:"0.65rem 1.5rem",fontFamily:"inherit",fontSize:"0.82rem",fontWeight:"800",cursor:raw.trim()&&!loading?"pointer":"not-allowed",letterSpacing:"0.06em",width:"100%"}}>
+        {loading?"Analyzing all hooks...":"📦 Analyze All Hooks"}
+      </button>
+
+      {results&&(
+        <div style={{marginTop:"1rem",display:"flex",flexDirection:"column",gap:"0.6rem"}}>
+          <div style={{fontSize:"0.65rem",color:"#475569",letterSpacing:"0.1em",marginBottom:"2px"}}>RANKED BY VIRAL POTENTIAL</div>
+          {results.map((r,i)=>(
+            <div key={i} style={{background:"#020817",border:`1px solid ${i===0?"rgba(34,211,238,0.3)":"#1e293b"}`,borderRadius:"10px",padding:"0.85rem 1rem",position:"relative"}}>
+              {i===0&&<span style={{position:"absolute",top:"8px",right:"10px",fontSize:"0.68rem",color:"#22d3ee",fontWeight:"700"}}>🏆 TOP PICK</span>}
+              <div style={{display:"flex",alignItems:"flex-start",gap:"0.85rem"}}>
+                <div style={{textAlign:"center",flexShrink:0,minWidth:"36px"}}>
+                  <div style={{fontSize:"1.4rem",fontWeight:"800",color:scoreColor(r.viral_score),fontFamily:"ui-monospace,monospace",lineHeight:1}}>{r.viral_score}</div>
+                  <div style={{fontSize:"0.58rem",color:"#475569"}}>/100</div>
+                </div>
+                <div style={{flex:1}}>
+                  <p style={{color:"#e2e8f0",fontSize:"0.83rem",fontWeight:"600",marginBottom:"5px",lineHeight:"1.4",paddingRight:"60px"}}>{r.hook}</p>
+                  <div style={{display:"flex",gap:"0.4rem",flexWrap:"wrap",marginBottom:"6px"}}>
+                    {(()=>{const m=getStatusMeta(r.trending_status);return <span style={{fontSize:"0.65rem",padding:"2px 8px",borderRadius:"999px",background:m.bg,color:m.color,border:`1px solid ${m.border}`,fontWeight:"600"}}>{m.label}</span>;})()}
+                    <span style={{fontSize:"0.65rem",padding:"2px 8px",borderRadius:"999px",background:"rgba(34,211,238,0.08)",color:"#22d3ee",border:"1px solid rgba(34,211,238,0.15)"}}>~{r.estimated_views} views</span>
+                  </div>
+                  <p style={{color:"#64748b",fontSize:"0.73rem",lineHeight:"1.5",marginBottom: r.fix?"6px":"0"}}>{r.verdict}</p>
+                  {r.fix&&<p style={{color:"#f59e0b",fontSize:"0.72rem",lineHeight:"1.5"}}>💡 Fix: {r.fix}</p>}
+                </div>
+                <button onClick={()=>copy(r.hook,i)} style={{flexShrink:0,background:"transparent",border:"1px solid #1e293b",borderRadius:"6px",padding:"4px 8px",color:copied===i?"#22d3ee":"#475569",fontFamily:"inherit",fontSize:"0.65rem",cursor:"pointer",transition:"all 0.2s",whiteSpace:"nowrap",alignSelf:"flex-start"}}>
+                  {copied===i?"✓":"copy"}
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function HookGenerator({niche}) {
+  const [topic,setTopic]=useState("");
+  const [hooks,setHooks]=useState(null);
+  const [loading,setLoading]=useState(false);
+  const [copied,setCopied]=useState(null);
+  const generate=async()=>{
+    const t=topic.trim();if(!t||loading)return;
+    setLoading(true);setHooks(null);
+    try{const res=await fetch("/api/analyze",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({topic:t,niche,mode:"generate"})});const data=await res.json();setHooks(data.hooks||[]);}
+    catch(e){console.error(e);}finally{setLoading(false);}
+  };
+  const copy=(text,i)=>{navigator.clipboard?.writeText(text).then(()=>{setCopied(i);setTimeout(()=>setCopied(null),1800);});};
+  return (
+    <div style={{background:"#0a0f1e",border:"1px solid rgba(167,139,250,0.2)",borderRadius:"14px",padding:"1.25rem 1.5rem",marginBottom:"0.85rem"}}>
+      <span style={{fontSize:"0.68rem",color:"#a78bfa",letterSpacing:"0.12em",marginBottom:"0.5rem",display:"block"}}>✨ HOOK GENERATOR — give me a topic, I&apos;ll write 5 viral hooks</span>
+      <p style={{color:"#334155",fontSize:"0.7rem",marginBottom:"0.85rem"}}>Each hook comes with a score and why it works.</p>
+      <div style={{display:"flex",gap:"0.6rem"}}>
+        <input value={topic} onChange={e=>setTopic(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")generate();}} placeholder="e.g. 'morning routine', 'AI tools', 'crypto crash'..."
+          style={{flex:1,background:"#020817",border:"1px solid #1e293b",borderRadius:"8px",padding:"0.6rem 0.85rem",color:"#f1f5f9",fontSize:"0.85rem",fontFamily:"inherit"}}/>
+        <button onClick={generate} disabled={!topic.trim()||loading}
+          style={{background:topic.trim()&&!loading?"linear-gradient(135deg,#a78bfa,#22d3ee)":"#1e293b",color:topic.trim()&&!loading?"#020817":"#475569",border:"none",borderRadius:"8px",padding:"0.6rem 1.1rem",fontFamily:"inherit",fontSize:"0.8rem",fontWeight:"800",cursor:topic.trim()&&!loading?"pointer":"not-allowed",whiteSpace:"nowrap"}}>
+          {loading?"Generating...":"✨ Generate"}
+        </button>
+      </div>
+      {hooks&&(
+        <div style={{marginTop:"1rem",display:"flex",flexDirection:"column",gap:"0.5rem"}}>
+          {hooks.map((h,i)=>(
+            <div key={i} onClick={()=>copy(h.hook,i)} style={{background:"#020817",border:`1px solid ${copied===i?"rgba(167,139,250,0.5)":"#1e293b"}`,borderRadius:"8px",padding:"0.75rem 1rem",cursor:"pointer",transition:"border 0.2s"}}>
+              <div style={{display:"flex",justifyContent:"space-between",marginBottom:"4px"}}>
+                <span style={{color:scoreColor(h.score),fontSize:"0.75rem",fontWeight:"700",fontFamily:"ui-monospace,monospace"}}>{h.score}/100</span>
+                <span style={{color:copied===i?"#a78bfa":"#334155",fontSize:"0.68rem"}}>{copied===i?"✓ copied":"copy"}</span>
+              </div>
+              <p style={{color:"#e2e8f0",fontSize:"0.83rem",lineHeight:"1.5",margin:"0 0 4px"}}>{h.hook}</p>
+              <p style={{color:"#475569",fontSize:"0.72rem",margin:0}}>{h.reason}</p>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -123,8 +271,10 @@ function CompareMode({niche}) {
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0.75rem"}}>
         {[0,1].map(idx=>(
           <div key={idx}>
-            <textarea value={hooks[idx]} onChange={e=>{const h=[...hooks];h[idx]=e.target.value;setHooks(h);}} placeholder={`Hook ${idx+1}...`} rows={2} style={{width:"100%",boxSizing:"border-box",background:"#020817",border:`1px solid ${winner===idx?"rgba(34,211,238,0.5)":"#1e293b"}`,borderRadius:"8px",padding:"0.6rem 0.75rem",color:"#f1f5f9",fontSize:"0.8rem",resize:"none",fontFamily:"inherit"}}/>
-            <button onClick={()=>analyze(idx)} disabled={!hooks[idx].trim()||loading[idx]} style={{width:"100%",marginTop:"6px",background:hooks[idx].trim()?"linear-gradient(135deg,#22d3ee,#a78bfa)":"#1e293b",color:hooks[idx].trim()?"#020817":"#475569",border:"none",borderRadius:"8px",padding:"0.45rem",fontFamily:"inherit",fontSize:"0.75rem",fontWeight:"700",cursor:hooks[idx].trim()?"pointer":"not-allowed"}}>
+            <textarea value={hooks[idx]} onChange={e=>{const h=[...hooks];h[idx]=e.target.value;setHooks(h);}} placeholder={`Hook ${idx+1}...`} rows={2}
+              style={{width:"100%",boxSizing:"border-box",background:"#020817",border:`1px solid ${winner===idx?"rgba(34,211,238,0.5)":"#1e293b"}`,borderRadius:"8px",padding:"0.6rem 0.75rem",color:"#f1f5f9",fontSize:"0.8rem",resize:"none",fontFamily:"inherit"}}/>
+            <button onClick={()=>analyze(idx)} disabled={!hooks[idx].trim()||loading[idx]}
+              style={{width:"100%",marginTop:"6px",background:hooks[idx].trim()?"linear-gradient(135deg,#22d3ee,#a78bfa)":"#1e293b",color:hooks[idx].trim()?"#020817":"#475569",border:"none",borderRadius:"8px",padding:"0.45rem",fontFamily:"inherit",fontSize:"0.75rem",fontWeight:"700",cursor:hooks[idx].trim()?"pointer":"not-allowed"}}>
               {loading[idx]?"Scanning...":"Analyze"}
             </button>
             {results[idx]&&(
@@ -141,56 +291,12 @@ function CompareMode({niche}) {
   );
 }
 
-function HookGenerator({niche}) {
-  const [topic,setTopic]=useState("");
-  const [hooks,setHooks]=useState(null);
-  const [loading,setLoading]=useState(false);
-  const [copied,setCopied]=useState(null);
-  const generate=async()=>{
-    const t=topic.trim();if(!t||loading)return;
-    setLoading(true);setHooks(null);
-    try{
-      const res=await fetch("/api/analyze",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({topic:t,niche,mode:"generate"})});
-      const data=await res.json();setHooks(data.hooks||[]);
-    }catch(e){console.error(e);}
-    finally{setLoading(false);}
-  };
-  const copy=(text,i)=>{navigator.clipboard?.writeText(text).then(()=>{setCopied(i);setTimeout(()=>setCopied(null),1800);});};
-  return (
-    <div style={{background:"#0a0f1e",border:"1px solid rgba(167,139,250,0.2)",borderRadius:"14px",padding:"1.25rem 1.5rem",marginBottom:"0.85rem"}}>
-      <span style={{fontSize:"0.68rem",color:"#a78bfa",letterSpacing:"0.12em",marginBottom:"0.85rem",display:"block"}}>✨ HOOK GENERATOR — give me a topic, I&apos;ll write 5 viral hooks</span>
-      <div style={{display:"flex",gap:"0.6rem"}}>
-        <input value={topic} onChange={e=>setTopic(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")generate();}} placeholder="e.g. 'morning routine', 'AI tools', 'crypto crash'..."
-          style={{flex:1,background:"#020817",border:"1px solid #1e293b",borderRadius:"8px",padding:"0.6rem 0.85rem",color:"#f1f5f9",fontSize:"0.85rem",fontFamily:"inherit"}}/>
-        <button onClick={generate} disabled={!topic.trim()||loading}
-          style={{background:topic.trim()&&!loading?"linear-gradient(135deg,#a78bfa,#22d3ee)":"#1e293b",color:topic.trim()&&!loading?"#020817":"#475569",border:"none",borderRadius:"8px",padding:"0.6rem 1.1rem",fontFamily:"inherit",fontSize:"0.8rem",fontWeight:"800",cursor:topic.trim()&&!loading?"pointer":"not-allowed",whiteSpace:"nowrap"}}>
-          {loading?"Generating...":"✨ Generate"}
-        </button>
-      </div>
-      {hooks&&(
-        <div style={{marginTop:"1rem",display:"flex",flexDirection:"column",gap:"0.5rem"}}>
-          {hooks.map((h,i)=>(
-            <div key={i} onClick={()=>copy(h.hook,i)} style={{background:"#020817",border:`1px solid ${copied===i?"rgba(167,139,250,0.5)":"#1e293b"}`,borderRadius:"8px",padding:"0.75rem 1rem",cursor:"pointer",transition:"border 0.2s"}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:"4px"}}>
-                <span style={{color:scoreColor(h.score),fontSize:"0.75rem",fontWeight:"700",fontFamily:"ui-monospace,monospace"}}>{h.score}/100</span>
-                <span style={{color:copied===i?"#a78bfa":"#334155",fontSize:"0.68rem"}}>{copied===i?"✓ copied":"copy"}</span>
-              </div>
-              <p style={{color:"#e2e8f0",fontSize:"0.83rem",lineHeight:"1.5",margin:"0 0 4px"}}>{h.hook}</p>
-              <p style={{color:"#475569",fontSize:"0.72rem",margin:0}}>{h.reason}</p>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
 function Paywall() {
   return (
     <div style={{background:"linear-gradient(135deg,rgba(34,211,238,0.04),rgba(167,139,250,0.04))",border:"1px solid rgba(34,211,238,0.2)",borderRadius:"16px",padding:"2rem",textAlign:"center",marginTop:"1rem"}}>
       <div style={{fontSize:"1.8rem",marginBottom:"0.5rem"}}>⚡</div>
       <h2 style={{color:"#f1f5f9",fontSize:"1.1rem",fontWeight:"700",margin:"0 0 0.4rem",fontFamily:"ui-monospace,monospace"}}>Free analyses used up</h2>
-      <p style={{color:"#64748b",fontSize:"0.82rem",lineHeight:"1.7",margin:"0 0 1rem"}}>Upgrade to <strong style={{color:"#22d3ee"}}>ShortSpark Pro</strong> for unlimited analyses, hook generator, comparator and history.</p>
+      <p style={{color:"#64748b",fontSize:"0.82rem",lineHeight:"1.7",margin:"0 0 1rem"}}>Upgrade to <strong style={{color:"#22d3ee"}}>ShortSpark Pro</strong> for unlimited analyses, batch analyzer, hook generator, and history dashboard.</p>
       <p style={{color:"#f59e0b",fontSize:"0.72rem",letterSpacing:"0.1em",marginBottom:"0.5rem"}}>⏰ LAUNCH OFFER EXPIRES IN</p>
       <Timer/>
       <button onClick={()=>window.location.href=GUMROAD_URL} style={{background:"linear-gradient(135deg,#22d3ee,#a78bfa)",color:"#020817",border:"none",borderRadius:"10px",padding:"0.85rem 2rem",fontFamily:"ui-monospace,monospace",fontSize:"0.9rem",fontWeight:"800",cursor:"pointer",letterSpacing:"0.05em",width:"100%",marginBottom:"0.75rem"}}>
@@ -226,7 +332,7 @@ export default function ShortSpark() {
   const [showPaywall,setShowPaywall]=useState(false);
   const [banner,setBanner]=useState(null);
   const [history,setHistory]=useState([]);
-  const [activeTab,setActiveTab]=useState("analyze"); // analyze | generate | compare | history
+  const [activeTab,setActiveTab]=useState("analyze");
 
   useEffect(()=>{
     setUsesLeft(FREE_LIMIT-getUses());
@@ -234,6 +340,8 @@ export default function ShortSpark() {
     const p=new URLSearchParams(window.location.search);
     if(p.get("success")==="true") setBanner({type:"success",msg:"🎉 Welcome to Pro! Unlimited analyses unlocked."});
     if(p.get("canceled")==="true") setBanner({type:"warn",msg:"Payment canceled. You can try again anytime."});
+    // expose reuse function for history dashboard
+    window._ss_reuse=(t,n)=>{setTopic(t);setNiche(n);setActiveTab("analyze");setResult(null);};
   },[]);
 
   const analyze=async()=>{
@@ -244,9 +352,7 @@ export default function ShortSpark() {
       const res=await fetch("/api/analyze",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({topic:t,niche})});
       const data=await res.json();
       if(data.error) throw new Error(data.error);
-      const newUses=incrementUses();
-      setUsesLeft(FREE_LIMIT-newUses);
-      setResult(data);
+      const newUses=incrementUses();setUsesLeft(FREE_LIMIT-newUses);setResult(data);
       saveHistory({topic:t,niche,score:data.viral_score,status:data.trending_status,date:new Date().toLocaleDateString()});
       setHistory(getHistory());
     }catch(e){setError(e.message||"Analysis failed. Try again.");}
@@ -260,9 +366,10 @@ export default function ShortSpark() {
 
   const tabs=[
     {id:"analyze",label:"⚡ Analyze"},
+    {id:"batch",label:"📦 Batch"},
     {id:"generate",label:"✨ Generator"},
     {id:"compare",label:"⚔️ Compare"},
-    ...(history.length>0?[{id:"history",label:`🕐 History (${history.length})`}]:[]),
+    {id:"dashboard",label:"📊 Dashboard"},
   ];
 
   return (
@@ -283,7 +390,7 @@ export default function ShortSpark() {
         textarea:focus,select:focus,input:focus{outline:1px solid #22d3ee!important;border-color:#22d3ee!important}
         textarea::placeholder,input::placeholder{color:#334155}
         .ss-btn:hover{opacity:0.85}.ss-btn:active{transform:scale(0.97)}
-        .title-row:hover,.hist-row:hover{background:#1e293b!important;cursor:pointer}
+        .title-row:hover{background:#1e293b!important;cursor:pointer}
         ::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:#0a0f1e}::-webkit-scrollbar-thumb{background:#1e293b;border-radius:3px}
       `}</style>
 
@@ -292,7 +399,7 @@ export default function ShortSpark() {
         {banner&&<div style={{background:banner.type==="success"?"rgba(34,211,238,0.08)":"rgba(245,158,11,0.08)",border:`1px solid ${banner.type==="success"?"rgba(34,211,238,0.3)":"rgba(245,158,11,0.3)"}`,borderRadius:"10px",padding:"0.75rem 1rem",marginBottom:"1rem",color:banner.type==="success"?"#22d3ee":"#f59e0b",fontSize:"0.82rem",textAlign:"center"}}>{banner.msg}</div>}
 
         {/* Header */}
-        <div style={{textAlign:"center",marginBottom:"1.75rem"}}>
+        <div style={{textAlign:"center",marginBottom:"1.5rem"}}>
           <div style={{display:"inline-flex",alignItems:"center",gap:"12px",marginBottom:"8px",animation:"float 3s ease-in-out infinite"}}>
             <svg width="34" height="34" viewBox="0 0 34 34" fill="none">
               <defs><linearGradient id="sg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#22d3ee"/><stop offset="100%" stopColor="#a78bfa"/></linearGradient></defs>
@@ -302,41 +409,33 @@ export default function ShortSpark() {
           </div>
           <p style={{color:"#475569",fontSize:"0.72rem",letterSpacing:"0.18em",marginBottom:"0.6rem"}}>VIRAL PREDICTION ENGINE FOR YOUTUBE SHORTS · 2026</p>
           <UserCounter/>
-          {usesLeft>0&&<p style={{color:"#334155",fontSize:"0.7rem",marginTop:"4px"}}>{usesLeft} free {usesLeft===1?"analysis":"analyses"} remaining today</p>}
+          <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:"1rem",marginTop:"6px"}}>
+            {usesLeft>0&&<p style={{color:"#334155",fontSize:"0.7rem"}}>{usesLeft} free {usesLeft===1?"analysis":"analyses"} remaining today</p>}
+            <a href="/examples" style={{color:"#475569",fontSize:"0.7rem",textDecoration:"none",borderBottom:"1px dashed #334155"}}>See real examples →</a>
+          </div>
         </div>
 
         {/* Tabs */}
-        <div style={{display:"flex",gap:"0.4rem",marginBottom:"1rem",background:"#0a0f1e",padding:"4px",borderRadius:"12px",border:"1px solid #1e293b"}}>
+        <div style={{display:"flex",gap:"0.35rem",marginBottom:"1rem",background:"#0a0f1e",padding:"4px",borderRadius:"12px",border:"1px solid #1e293b",overflowX:"auto"}}>
           {tabs.map(tab=>(
             <button key={tab.id} onClick={()=>setActiveTab(tab.id)}
-              style={{flex:1,background:activeTab===tab.id?"linear-gradient(135deg,rgba(34,211,238,0.15),rgba(167,139,250,0.15))":"transparent",border:activeTab===tab.id?"1px solid rgba(34,211,238,0.2)":"1px solid transparent",borderRadius:"8px",padding:"0.5rem 0.4rem",color:activeTab===tab.id?"#22d3ee":"#475569",fontFamily:"inherit",fontSize:"0.7rem",fontWeight:"700",cursor:"pointer",transition:"all 0.2s",letterSpacing:"0.03em",whiteSpace:"nowrap"}}>
+              style={{flex:"0 0 auto",background:activeTab===tab.id?"linear-gradient(135deg,rgba(34,211,238,0.15),rgba(167,139,250,0.15))":"transparent",border:activeTab===tab.id?"1px solid rgba(34,211,238,0.2)":"1px solid transparent",borderRadius:"8px",padding:"0.5rem 0.75rem",color:activeTab===tab.id?"#22d3ee":"#475569",fontFamily:"inherit",fontSize:"0.7rem",fontWeight:"700",cursor:"pointer",transition:"all 0.2s",letterSpacing:"0.03em",whiteSpace:"nowrap"}}>
               {tab.label}
             </button>
           ))}
         </div>
 
-        {/* Generate Tab */}
+        {/* Niche selector — always visible */}
+        <div style={{marginBottom:"0.85rem"}}>
+          <select value={niche} onChange={e=>setNiche(e.target.value)} style={{width:"100%",background:"#0a0f1e",border:"1px solid #1e293b",borderRadius:"10px",padding:"0.55rem 0.85rem",color:"#94a3b8",fontSize:"0.82rem",fontFamily:"inherit",cursor:"pointer"}}>
+            {NICHES.map(n=><option key={n} value={n}>{n}</option>)}
+          </select>
+        </div>
+
+        {activeTab==="batch"&&<BatchAnalyzer niche={niche}/>}
         {activeTab==="generate"&&<HookGenerator niche={niche}/>}
-
-        {/* Compare Tab */}
         {activeTab==="compare"&&<CompareMode niche={niche}/>}
-
-        {/* History Tab */}
-        {activeTab==="history"&&history.length>0&&(
-          <div style={{...card,marginBottom:"0.85rem"}}>
-            <span style={lbl}>🕐 RECENT ANALYSES — click to reuse</span>
-            <div style={{display:"flex",flexDirection:"column",gap:"0.5rem"}}>
-              {history.map((h,i)=>(
-                <div key={i} className="hist-row" onClick={()=>{setTopic(h.topic);setNiche(h.niche);setActiveTab("analyze");}}
-                  style={{background:"#020817",border:"1px solid #1e293b",borderRadius:"8px",padding:"0.6rem 0.9rem",display:"flex",alignItems:"center",gap:"0.75rem",transition:"background 0.15s"}}>
-                  <span style={{color:scoreColor(h.score),fontSize:"0.85rem",fontWeight:"700",fontFamily:"ui-monospace,monospace",flexShrink:0,minWidth:"28px"}}>{h.score}</span>
-                  <span style={{color:"#e2e8f0",fontSize:"0.8rem",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{h.topic}</span>
-                  <span style={{color:"#334155",fontSize:"0.68rem",flexShrink:0}}>{h.date}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        {activeTab==="dashboard"&&<HistoryDashboard history={history}/>}
 
         {/* Analyze Tab */}
         {activeTab==="analyze"&&(
@@ -346,16 +445,10 @@ export default function ShortSpark() {
               <textarea value={topic} onChange={e=>setTopic(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&e.ctrlKey)analyze();}}
                 placeholder={'"I let AI control my life for 24 hours and this happened"'}
                 rows={3} style={{width:"100%",background:"#020817",border:"1px solid #1e293b",borderRadius:"10px",padding:"0.75rem 1rem",color:"#f1f5f9",fontSize:"0.9rem",resize:"vertical",fontFamily:"inherit",lineHeight:"1.6"}}/>
-              <div style={{display:"flex",gap:"0.75rem",marginTop:"1rem",alignItems:"flex-end"}}>
-                <div style={{flex:1}}>
-                  <span style={{...lbl,marginBottom:"0.4rem"}}>NICHE</span>
-                  <select value={niche} onChange={e=>setNiche(e.target.value)} style={{width:"100%",background:"#020817",border:"1px solid #1e293b",borderRadius:"10px",padding:"0.6rem 0.85rem",color:"#f1f5f9",fontSize:"0.85rem",fontFamily:"inherit",cursor:"pointer"}}>
-                    {NICHES.map(n=><option key={n} value={n}>{n}</option>)}
-                  </select>
-                </div>
+              <div style={{display:"flex",gap:"0.75rem",marginTop:"1rem"}}>
                 <button className="ss-btn" onClick={analyze} disabled={!topic.trim()||loading}
-                  style={{background:topic.trim()&&!loading?"linear-gradient(135deg,#22d3ee,#a78bfa)":"#1e293b",color:topic.trim()&&!loading?"#020817":"#475569",border:"none",borderRadius:"10px",padding:"0.62rem 1.4rem",fontFamily:"inherit",fontSize:"0.82rem",fontWeight:"800",cursor:topic.trim()&&!loading?"pointer":"not-allowed",letterSpacing:"0.08em",transition:"all 0.18s",display:"flex",alignItems:"center",gap:"8px",whiteSpace:"nowrap",flexShrink:0}}>
-                  {loading?<><svg width="16" height="16" viewBox="0 0 16 16" style={{animation:"spin 0.8s linear infinite"}}><circle cx="8" cy="8" r="6" fill="none" stroke="#020817" strokeWidth="2" strokeOpacity="0.3"/><path d="M8 2 A6 6 0 0 1 14 8" fill="none" stroke="#020817" strokeWidth="2" strokeLinecap="round"/></svg>SCANNING…</>:"⚡ ANALYZE"}
+                  style={{flex:1,background:topic.trim()&&!loading?"linear-gradient(135deg,#22d3ee,#a78bfa)":"#1e293b",color:topic.trim()&&!loading?"#020817":"#475569",border:"none",borderRadius:"10px",padding:"0.7rem",fontFamily:"inherit",fontSize:"0.85rem",fontWeight:"800",cursor:topic.trim()&&!loading?"pointer":"not-allowed",letterSpacing:"0.08em",transition:"all 0.18s",display:"flex",alignItems:"center",justifyContent:"center",gap:"8px"}}>
+                  {loading?<><svg width="16" height="16" viewBox="0 0 16 16" style={{animation:"spin 0.8s linear infinite"}}><circle cx="8" cy="8" r="6" fill="none" stroke="#020817" strokeWidth="2" strokeOpacity="0.3"/><path d="M8 2 A6 6 0 0 1 14 8" fill="none" stroke="#020817" strokeWidth="2" strokeLinecap="round"/></svg>SCANNING…</>:"⚡ ANALYZE HOOK"}
                 </button>
               </div>
               <p style={{fontSize:"0.68rem",color:"#334155",marginTop:"0.5rem"}}>Ctrl+Enter to analyze</p>
@@ -367,7 +460,6 @@ export default function ShortSpark() {
 
             {result&&(
               <div style={{display:"flex",flexDirection:"column",gap:"0.85rem",animation:"fadeUp 0.5s ease"}}>
-
                 <div style={{display:"grid",gridTemplateColumns:"1fr 2fr",gap:"0.85rem"}}>
                   <div style={{...card,textAlign:"center",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",background:"linear-gradient(135deg,rgba(34,211,238,0.04),rgba(167,139,250,0.04))"}}>
                     <span style={lbl}>VIRAL SCORE</span>
@@ -385,37 +477,35 @@ export default function ShortSpark() {
                   </div>
                 </div>
 
-                {/* 3 score bars */}
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"0.85rem"}}>
                   <Bar label="HOOK STRENGTH" value={result.hook_strength} color="#a78bfa"/>
                   <Bar label="VIRAL POTENTIAL" value={result.viral_score} color="#22d3ee"/>
                   <Bar label="THUMBNAIL SCORE" value={result.thumbnail_score||70} color="#f59e0b"/>
                 </div>
 
-                {/* Optimal length + Hashtags */}
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0.85rem"}}>
                   <div style={card}>
-                    <span style={lbl}>⏱ OPTIMAL VIDEO LENGTH</span>
+                    <span style={lbl}>⏱ OPTIMAL LENGTH</span>
                     <div style={{display:"flex",alignItems:"center",gap:"10px"}}>
-                      <span style={{fontSize:"1.5rem"}}>🎬</span>
-                      <span style={{color:"#22d3ee",fontSize:"1.1rem",fontWeight:"700",fontFamily:"ui-monospace,monospace"}}>{result.optimal_length||"30-45 seconds"}</span>
+                      <span style={{fontSize:"1.4rem"}}>🎬</span>
+                      <span style={{color:"#22d3ee",fontSize:"1rem",fontWeight:"700",fontFamily:"ui-monospace,monospace"}}>{result.optimal_length||"30-45 seconds"}</span>
                     </div>
-                    <p style={{color:"#475569",fontSize:"0.72rem",marginTop:"8px"}}>Recommended for your niche & topic type</p>
+                    <p style={{color:"#475569",fontSize:"0.7rem",marginTop:"6px"}}>Recommended for this niche</p>
                   </div>
                   <div style={card}>
                     <span style={lbl}># BEST HASHTAGS</span>
                     <div style={{display:"flex",flexWrap:"wrap",gap:"0.4rem"}}>
                       {(result.hashtags||[]).map((tag,i)=>(
-                        <span key={i} onClick={()=>{navigator.clipboard?.writeText(tag);}} style={{fontSize:"0.72rem",padding:"4px 10px",borderRadius:"999px",background:"rgba(167,139,250,0.08)",color:"#a78bfa",border:"1px solid rgba(167,139,250,0.2)",cursor:"pointer"}}>#{tag.replace(/^#/,"")}</span>
+                        <span key={i} onClick={()=>navigator.clipboard?.writeText(tag)} style={{fontSize:"0.7rem",padding:"3px 8px",borderRadius:"999px",background:"rgba(167,139,250,0.08)",color:"#a78bfa",border:"1px solid rgba(167,139,250,0.2)",cursor:"pointer"}}>#{tag.replace(/^#/,"")}</span>
                       ))}
                     </div>
-                    <p style={{color:"#475569",fontSize:"0.7rem",marginTop:"8px"}}>Click any tag to copy</p>
+                    <p style={{color:"#475569",fontSize:"0.68rem",marginTop:"6px"}}>Click to copy</p>
                   </div>
                 </div>
 
                 <div style={card}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"0.75rem"}}>
-                    <span style={{...lbl,marginBottom:0}}>⚡ OPTIMIZED TITLES — click to copy</span>
+                    <span style={{...lbl,marginBottom:0}}>⚡ OPTIMIZED TITLES</span>
                     <ShareButton result={result} topic={topic}/>
                   </div>
                   <div style={{display:"flex",flexDirection:"column",gap:"0.5rem"}}>
@@ -460,7 +550,7 @@ export default function ShortSpark() {
                 {usesLeft<=1&&(
                   <div style={{background:"linear-gradient(135deg,rgba(34,211,238,0.05),rgba(167,139,250,0.05))",border:"1px solid rgba(34,211,238,0.2)",borderRadius:"12px",padding:"1.25rem 1.5rem",textAlign:"center"}}>
                     <p style={{color:"#e2e8f0",fontSize:"0.85rem",marginBottom:"0.5rem",fontWeight:"600"}}>{usesLeft===0?"No free analyses left today.":"Last free analysis today."}</p>
-                    <p style={{color:"#64748b",fontSize:"0.78rem",marginBottom:"1rem"}}>Upgrade for unlimited + hook generator + comparator</p>
+                    <p style={{color:"#64748b",fontSize:"0.78rem",marginBottom:"1rem"}}>Upgrade for unlimited + batch analyzer + generator</p>
                     <button className="ss-btn" onClick={()=>window.location.href=GUMROAD_URL} style={{background:"linear-gradient(135deg,#22d3ee,#a78bfa)",color:"#020817",border:"none",borderRadius:"8px",padding:"0.6rem 1.5rem",fontFamily:"inherit",fontSize:"0.82rem",fontWeight:"800",cursor:"pointer",letterSpacing:"0.05em"}}>
                       Unlock Pro — $9/month
                     </button>
@@ -476,7 +566,8 @@ export default function ShortSpark() {
             {!result&&!loading&&!error&&!showPaywall&&(
               <div style={{textAlign:"center",padding:"3rem 0"}}>
                 <div style={{fontSize:"3rem",marginBottom:"1rem",opacity:0.15,animation:"float 3s ease-in-out infinite"}}>◈</div>
-                <p style={{fontSize:"0.75rem",letterSpacing:"0.15em",color:"#334155"}}>ENTER A TOPIC ABOVE TO SCAN ITS VIRAL POTENTIAL</p>
+                <p style={{fontSize:"0.75rem",letterSpacing:"0.15em",color:"#334155",marginBottom:"0.75rem"}}>ENTER A TOPIC ABOVE TO SCAN ITS VIRAL POTENTIAL</p>
+                <a href="/examples" style={{color:"#475569",fontSize:"0.72rem",textDecoration:"none",borderBottom:"1px dashed #334155"}}>See real examples of viral vs flopped hooks →</a>
               </div>
             )}
           </>

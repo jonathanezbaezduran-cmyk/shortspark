@@ -445,12 +445,10 @@ export default function ShortSpark() {
               <textarea value={topic} onChange={e=>setTopic(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&e.ctrlKey)analyze();}}
                 placeholder={'"I let AI control my life for 24 hours and this happened"'}
                 rows={3} style={{width:"100%",background:"#020817",border:"1px solid #1e293b",borderRadius:"10px",padding:"0.75rem 1rem",color:"#f1f5f9",fontSize:"0.9rem",resize:"vertical",fontFamily:"inherit",lineHeight:"1.6"}}/>
-              <div style={{display:"flex",gap:"0.75rem",marginTop:"1rem"}}>
-                <button className="ss-btn" onClick={analyze} disabled={!topic.trim()||loading}
-                  style={{flex:1,background:topic.trim()&&!loading?"linear-gradient(135deg,#22d3ee,#a78bfa)":"#1e293b",color:topic.trim()&&!loading?"#020817":"#475569",border:"none",borderRadius:"10px",padding:"0.7rem",fontFamily:"inherit",fontSize:"0.85rem",fontWeight:"800",cursor:topic.trim()&&!loading?"pointer":"not-allowed",letterSpacing:"0.08em",transition:"all 0.18s",display:"flex",alignItems:"center",justifyContent:"center",gap:"8px"}}>
-                  {loading?<><svg width="16" height="16" viewBox="0 0 16 16" style={{animation:"spin 0.8s linear infinite"}}><circle cx="8" cy="8" r="6" fill="none" stroke="#020817" strokeWidth="2" strokeOpacity="0.3"/><path d="M8 2 A6 6 0 0 1 14 8" fill="none" stroke="#020817" strokeWidth="2" strokeLinecap="round"/></svg>SCANNING…</>:"⚡ ANALYZE HOOK"}
-                </button>
-              </div>
+              <button className="ss-btn" onClick={analyze} disabled={loading}
+                style={{width:"100%",marginTop:"1rem",background:"linear-gradient(135deg,#22d3ee,#a78bfa)",color:"#020817",border:"none",borderRadius:"10px",padding:"0.8rem",fontFamily:"inherit",fontSize:"0.88rem",fontWeight:"800",cursor:"pointer",letterSpacing:"0.08em",transition:"all 0.18s",display:"flex",alignItems:"center",justifyContent:"center",gap:"8px",opacity:!topic.trim()||loading?0.5:1}}>
+                {loading?<><svg width="16" height="16" viewBox="0 0 16 16" style={{animation:"spin 0.8s linear infinite"}}><circle cx="8" cy="8" r="6" fill="none" stroke="#020817" strokeWidth="2" strokeOpacity="0.3"/><path d="M8 2 A6 6 0 0 1 14 8" fill="none" stroke="#020817" strokeWidth="2" strokeLinecap="round"/></svg>SCANNING…</>:"⚡ ANALYZE HOOK"}
+              </button>
               <p style={{fontSize:"0.68rem",color:"#334155",marginTop:"0.5rem"}}>Ctrl+Enter to analyze</p>
             </div>
 

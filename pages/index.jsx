@@ -95,7 +95,7 @@ function ShareButton({result,topic}) {
   return <button onClick={share} style={{background:"rgba(34,211,238,0.08)",border:"1px solid rgba(34,211,238,0.2)",borderRadius:"8px",padding:"0.45rem 0.9rem",color:"#22d3ee",fontFamily:"inherit",fontSize:"0.72rem",fontWeight:"700",cursor:"pointer",display:"flex",alignItems:"center",gap:"5px"}}>{shared?"✓ Copied!":"↗ Share score"}</button>;
 }
 
-function HistoryDashboard({history}) {
+function HistoryDashboard({history, onReuse}) {
   if(history.length===0) return null;
   const avg=Math.round(history.reduce((s,h)=>s+h.score,0)/history.length);
   const best=history.reduce((b,h)=>h.score>b.score?h:b,history[0]);
@@ -134,7 +134,7 @@ function HistoryDashboard({history}) {
       <div style={{display:"flex",flexDirection:"column",gap:"0.4rem",maxHeight:"180px",overflowY:"auto"}}>
         {history.map((h,i)=>(
           <div key={i} style={{background:"#020817",border:"1px solid #1e293b",borderRadius:"7px",padding:"0.5rem 0.75rem",display:"flex",alignItems:"center",gap:"0.6rem",cursor:"pointer",transition:"background 0.15s"}}
-            onClick={()=>{ window._ss_reuse&&window._ss_reuse(h.topic,h.niche); }}>
+            onClick={()=>onReuse&&onReuse(h.topic,h.niche)}>
             <span style={{color:scoreColor(h.score),fontSize:"0.8rem",fontWeight:"700",fontFamily:"ui-monospace,monospace",flexShrink:0,minWidth:"24px"}}>{h.score}</span>
             <span style={{color:"#e2e8f0",fontSize:"0.75rem",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{h.topic}</span>
             <span style={{color:"#334155",fontSize:"0.65rem",flexShrink:0}}>{h.date}</span>
@@ -341,7 +341,7 @@ export default function ShortSpark() {
     if(p.get("success")==="true") setBanner({type:"success",msg:"🎉 Welcome to Pro! Unlimited analyses unlocked."});
     if(p.get("canceled")==="true") setBanner({type:"warn",msg:"Payment canceled. You can try again anytime."});
     // expose reuse function for history dashboard
-    window._ss_reuse=(t,n)=>{setTopic(t);setNiche(n);setActiveTab("analyze");setResult(null);};
+    window._ss_reuse=undefined;
   },[]);
 
   const analyze=async()=>{
@@ -435,7 +435,7 @@ export default function ShortSpark() {
         {activeTab==="batch"&&<BatchAnalyzer niche={niche}/>}
         {activeTab==="generate"&&<HookGenerator niche={niche}/>}
         {activeTab==="compare"&&<CompareMode niche={niche}/>}
-        {activeTab==="dashboard"&&<HistoryDashboard history={history}/>}
+        {activeTab==="dashboard"&&<HistoryDashboard history={history} onReuse={(t,n)=>{setTopic(t);setNiche(n);setActiveTab("analyze");setResult(null);}}/>}
 
         {/* Analyze Tab */}
         {activeTab==="analyze"&&(

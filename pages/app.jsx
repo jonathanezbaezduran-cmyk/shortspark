@@ -345,7 +345,8 @@ function SignInModal() {
 }
 
 export default function App() {
-  const [user,setUser]=useState(undefined); // undefined = loading
+  const [mounted,setMounted]=useState(false);
+  const [user,setUser]=useState(null);
   const [topic,setTopic]=useState("");
   const [niche,setNiche]=useState("AI & Technology");
   const [loading,setLoading]=useState(false);
@@ -360,8 +361,9 @@ export default function App() {
   const [showAchievement,setShowAchievement]=useState(null);
   const [earnedAchievements,setEarnedAchievements]=useState([]);
 
-  // Auth
+  // Auth - only run on client after mount
   useEffect(()=>{
+    setMounted(true);
     supabase.auth.getSession().then(({data:{session}})=>{setUser(session?.user||null);});
     const {data:{subscription}}=supabase.auth.onAuthStateChange((_event,session)=>{setUser(session?.user||null);});
     return()=>subscription.unsubscribe();
@@ -454,8 +456,8 @@ export default function App() {
   const lbl={fontSize:"0.68rem",color:"#475569",letterSpacing:"0.12em",marginBottom:"0.75rem",display:"block"};
   const tabs=[{id:"analyze",label:"⚡ Analyze"},{id:"batch",label:"📦 Batch"},{id:"generate",label:"✨ Generator"},{id:"compare",label:"⚔️ Compare"}];
 
-  // Loading auth
-  if(user===undefined) return <div style={{minHeight:"100vh",background:"#020617",display:"flex",alignItems:"center",justifyContent:"center",color:"#94a3b8",fontFamily:"ui-monospace,monospace"}}>Loading...</div>;
+  // Don't render anything dynamic until mounted on client (prevents hydration errors)
+  if(!mounted) return <div style={{minHeight:"100vh",background:"#020617"}}/>;
 
   return (
     <>

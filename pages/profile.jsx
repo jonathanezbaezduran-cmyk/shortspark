@@ -7,6 +7,7 @@ const NICHES = ["AI & Technology","Fitness & Health","Finance & Crypto","Gaming"
 
 export default function Profile() {
   const router = useRouter();
+  const [mounted,setMounted]=useState(false);
   const [user,setUser]=useState(null);
   const [loading,setLoading]=useState(true);
   const [saving,setSaving]=useState(false);
@@ -14,6 +15,7 @@ export default function Profile() {
   const [profile,setProfile]=useState({display_name:"",niche:"AI & Technology",show_in_feed:true,show_score:true,show_niche:true});
 
   useEffect(()=>{
+    setMounted(true);
     const load=async()=>{
       const {data:{session}}=await supabase.auth.getSession();
       if(!session){router.replace("/");return;}
@@ -38,7 +40,7 @@ export default function Profile() {
     router.replace("/");
   };
 
-  if(loading) return <div style={{minHeight:"100vh",background:"#020617",display:"flex",alignItems:"center",justifyContent:"center",color:"#94a3b8",fontFamily:"ui-monospace,monospace"}}>Loading...</div>;
+  if(!mounted || loading) return <div style={{minHeight:"100vh",background:"#020617",display:"flex",alignItems:"center",justifyContent:"center",color:"#94a3b8",fontFamily:"ui-monospace,monospace"}}>Loading...</div>;
 
   const card={background:"rgba(15,23,42,0.4)",border:"1px solid #1e293b",borderRadius:"14px",padding:"1.5rem",backdropFilter:"blur(8px)"};
   const lbl={fontSize:"0.7rem",color:"#475569",letterSpacing:"0.12em",marginBottom:"0.5rem",display:"block"};

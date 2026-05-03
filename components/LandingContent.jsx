@@ -174,7 +174,7 @@ export default function Landing() {
                 fontSize:"0.95rem",fontWeight:"800",letterSpacing:"0.05em",
                 display:"inline-flex",alignItems:"center",gap:"8px"
               }}>
-                ⚡ Try Free — No Signup
+                ⚡ Sign In Free
               </a>
               <a href="#features" style={{
                 background:"transparent",color:"#cbd5e1",
@@ -188,7 +188,7 @@ export default function Landing() {
             </div>
 
             <p className="reveal" style={{color:"#475569",fontSize:"0.78rem",marginTop:"2rem",animationDelay:"0.4s"}}>
-              3 free analyses every 24 hours · No credit card · Cancel anytime
+              Free with Google · No credit card · Cancel anytime
             </p>
 
           </div>
@@ -314,7 +314,7 @@ export default function Landing() {
                 </div>
                 <p style={{color:"#94a3b8",fontSize:"0.85rem",marginBottom:"2rem",lineHeight:"1.6"}}>Perfect for testing the value before committing.</p>
                 <ul style={{listStyle:"none",marginBottom:"2rem",display:"flex",flexDirection:"column",gap:"0.75rem"}}>
-                  {["3 hook analyses every 24 hours","Full feature access","No signup required","Examples library access"].map((item,i) => (
+                  {["3 hook analyses every 24 hours","Full feature access","Sign in with Google","Examples library access"].map((item,i) => (
                     <li key={i} style={{display:"flex",gap:"0.6rem",alignItems:"flex-start",color:"#cbd5e1",fontSize:"0.85rem",lineHeight:"1.6"}}>
                       <span style={{color:"#22d3ee",flexShrink:0}}>✓</span>{item}
                     </li>
@@ -436,7 +436,7 @@ export default function Landing() {
                 <span style={{background:"linear-gradient(135deg,#22d3ee,#a78bfa)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>Start measuring.</span>
               </h2>
               <p style={{color:"#94a3b8",fontSize:"1rem",marginBottom:"2rem",maxWidth:"500px",margin:"0 auto 2rem"}}>
-                Three free analyses. No signup. Test your next hook in 10 seconds.
+                Three free analyses every 24 hours. Sign in with Google in seconds.
               </p>
               <a href="/app" className="cta-btn" style={{
                 display:"inline-block",
